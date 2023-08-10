@@ -7,7 +7,7 @@ from langchain.prompts import (
     ChatPromptTemplate,
     MessagesPlaceholder,
     SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate
+    HumanMessagePromptTemplate,
 )
 
 
@@ -19,49 +19,51 @@ from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
 TEMPERATURE = 0.5
 MODEL = "gpt-4"
 
+
 def chat():
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessagePromptTemplate.from_template(
-            f"This is a conversation between a human and an AI philosopher of Stoicsm. "
-            "You help the human reflect on the core concepts of Stoicism as though you are Epictetus himself. "
-        ),
-        MessagesPlaceholder(variable_name="history"),
-        HumanMessagePromptTemplate.from_template("{input}")
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            SystemMessagePromptTemplate.from_template(
+                f"This is a conversation between a human and an AI philosopher of Stoicsm. "
+                "You help the human reflect on the core concepts of Stoicism as though you are Epictetus himself. "
+            ),
+            MessagesPlaceholder(variable_name="history"),
+            HumanMessagePromptTemplate.from_template("{input}"),
+        ]
+    )
 
     llm = ChatOpenAI(temperature=TEMPERATURE, model=MODEL)
     memory = ConversationSummaryMemory(llm=OpenAI(), return_messages=True)
-    conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm, verbose=True)
+    conversation = ConversationChain(
+        memory=memory, prompt=prompt, llm=llm, verbose=True
+    )
 
-
-    # Starts the chat conversation
     print('Start chatting (type "quit" to exit):\n')
-    # print concept, definition, chapter, question
-    # print(f"{Fore.GREEN}Concept: {Style.RESET_ALL}{concept['title']}")
-    # print(f"{Fore.GREEN}Definition: {Style.RESET_ALL}{concept['definition']}")
-    # print(f"{Fore.GREEN}Chapter: {Style.RESET_ALL}{chapter}")
-    # print(f"{Fore.GREEN}Question: {Style.RESET_ALL}{question}\n")
-
     while True:
-        user_input = input(f'{Fore.BLUE}> {Style.RESET_ALL}')
-        if user_input.lower() == 'quit':
+        user_input = input(f"{Fore.BLUE}> {Style.RESET_ALL}")
+        if user_input.lower() == "quit":
             break
 
         resp = conversation.predict(input=user_input)
-        print(f'{Fore.MAGENTA}{resp}{Style.RESET_ALL}\n')
+        print(f"{Fore.MAGENTA}{resp}{Style.RESET_ALL}\n")
+
 
 def main():
-    # Argument parser
-    parser = argparse.ArgumentParser(description="A tool for Stoic reflection based on the principles in Epictetus's Enchiridion.")
-    parser.add_argument('--action', required=True, choices=['reflection'], help="Action to perform. Currently supports 'reflection' only.")
-    # parser.add_argument('--type', required=True, choices=['random'], help="Type of action to perform. Currently supports 'random' only.")
+    parser = argparse.ArgumentParser(
+        description="A tool for Stoic reflection based on the principles in Epictetus's Enchiridion."
+    )
+    parser.add_argument(
+        "--action",
+        required=True,
+        choices=["reflection"],
+        help="Action to perform. Currently supports 'reflection' only.",
+    )
 
     args = parser.parse_args()
 
-    if args.action == 'reflection':
+    if args.action == "reflection":
         chat()
+
 
 if __name__ == "__main__":
     main()
-
-
