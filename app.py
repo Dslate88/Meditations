@@ -10,10 +10,11 @@ from langchain.prompts import (
     HumanMessagePromptTemplate
 )
 
+
 from langchain.llms import OpenAI
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
-from langchain.memory import ConversationSummaryBufferMemory
+from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
 
 TEMPERATURE = 0.5
 MODEL = "gpt-4"
@@ -29,11 +30,9 @@ def chat():
     ])
 
     llm = ChatOpenAI(temperature=TEMPERATURE, model=MODEL)
-    conversation_with_summary = ConversationChain(
-        llm=llm,
-        memory=ConversationSummaryBufferMemory(llm=OpenAI(), max_token_limit=40, return_messages=True),
-        verbose=True
-    )
+    memory = ConversationSummaryMemory(llm=OpenAI(), return_messages=True)
+    conversation = ConversationChain(memory=memory, prompt=prompt, llm=llm, verbose=True)
+
 
     # Starts the chat conversation
     print('Start chatting (type "quit" to exit):\n')
@@ -48,7 +47,7 @@ def chat():
         if user_input.lower() == 'quit':
             break
 
-        resp = conversation_with_summary.predict(input=user_input)
+        resp = conversation.predict(input=user_input)
         print(f'{Fore.MAGENTA}{resp}{Style.RESET_ALL}\n')
 
 def main():
