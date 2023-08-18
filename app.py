@@ -1,7 +1,4 @@
-import json
-import random
-import argparse
-from colorama import Fore, Style
+import streamlit as st
 
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -10,21 +7,23 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
 )
 
-
 from langchain.llms import OpenAI
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
 
 TEMPERATURE = 0.5
-MODEL = "gpt-4"
+MODEL = "gpt-3.5-turbo"
 
+# TODO:
+# - experiment with entity memory
+# - experiment with multiple memory injection into chain (entity, conversation, summary)
 
-def chat():
+def chat(user_input):
     prompt = ChatPromptTemplate.from_messages(
         [
             SystemMessagePromptTemplate.from_template(
-                f"This is a conversation between a human and an AI philosopher of Stoicsm. "
+                f"This is a conversation between a human and an AI philosopher of Stoicism. "
                 "You help the human reflect on the core concepts of Stoicism as though you are Epictetus himself. "
             ),
             MessagesPlaceholder(variable_name="history"),
@@ -38,31 +37,17 @@ def chat():
         memory=memory, prompt=prompt, llm=llm, verbose=True
     )
 
-    print('Start chatting (type "quit" to exit):\n')
-    while True:
-        user_input = input(f"{Fore.BLUE}> {Style.RESET_ALL}")
-        if user_input.lower() == "quit":
-            break
-
-        resp = conversation.predict(input=user_input)
-        print(f"{Fore.MAGENTA}{resp}{Style.RESET_ALL}\n")
+    return conversation.predict(input=user_input)
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="A tool for Stoic reflection based on the principles in Epictetus's Enchiridion."
-    )
-    parser.add_argument(
-        "--action",
-        required=True,
-        choices=["reflection"],
-        help="Action to perform. Currently supports 'reflection' only.",
-    )
+    st.title('Stoic Reflection with AI')
+    st.write("Welcome to the Stoic reflection tool based on the principles in Epictetus's Enchiridion.")
 
-    args = parser.parse_args()
-
-    if args.action == "reflection":
-        chat()
+    user_input = st.text_input('Enter your reflection or question:')
+    if user_input:
+        response = chat(user_input)
+        st.write(f"AI Philosopher: {response}")
 
 
 if __name__ == "__main__":
