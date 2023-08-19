@@ -15,10 +15,6 @@ from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
 TEMPERATURE = 0.5
 MODEL = "gpt-3.5-turbo"
 
-# TODO:
-# - experiment with entity memory
-# - experiment with multiple memory injection into chain (entity, conversation, summary)
-
 def chat(user_input):
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -44,15 +40,21 @@ def main():
     st.title('Stoic Reflection with AI')
     st.write("Welcome to the Stoic reflection tool based on the principles in Epictetus's Enchiridion.")
 
-    if not hasattr(st.session_state, 'messages'):
+    if "messages" not in st.session_state:
         st.session_state.messages = []
-    user_input = st.text_input('Enter your reflection or question:')
-    if user_input:
-        st.session_state.messages.append(user_input)
-        response = chat(user_input)
-        st.session_state.messages.append(response)
-    st.write(st.session_state.messages)
 
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    if prompt := st.chat_input("What is up?"):
+        st.chat_message("user").markdown(prompt)
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        response = chat(prompt)
+        with st.chat_message("assistant"):
+            st.markdown(response)
+
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
 if __name__ == "__main__":
     main()
