@@ -19,8 +19,34 @@ MODEL = "gpt-3.5-turbo"
 class StoicChat:
     def __init__(self):
         # Initialization of constants
-        self.TEMPERATURE = 0.5
-        self.MODEL = "gpt-3.5-turbo"
+        self._setup_sidebar()
+
+    def _setup_sidebar(self):
+        st.sidebar.header('Configuration')
+
+        # Model Selection
+        self.MODEL = st.sidebar.selectbox(
+            "Select AI Model:",
+            ["gpt-3.5-turbo", "gpt-4"],
+            index=0
+        )
+
+        # Temperature Slider
+        self.TEMPERATURE = st.sidebar.slider(
+            "Temperature (Determines Randomness)",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.5,  # Default value
+            step=0.05
+        )
+
+        # System Message Text Area
+        default_system_msg = ("This is a conversation between a human and an AI philosopher of Stoicism. "
+                              "You help the human reflect on the core concepts of Stoicism as though you are Epictetus himself.")
+        self.SYSTEM_MESSAGE = st.sidebar.text_area(
+            "System Message:",
+            value=default_system_msg
+        )
 
         # Load or initialize the conversation
         self.conversation = self._get_or_create_conversation()
