@@ -18,8 +18,6 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 DATABASE_URL = "postgresql://postgres:mypassword@localhost/chat_history"
 
 
-
-
 class ChatSession:
     def __init__(self, model, temperature, system_message):
         self.MODEL = model
@@ -54,12 +52,10 @@ def main():
     )
 
     # Sidebar Configuration
-    st.sidebar.header('Configuration')
+    st.sidebar.header("Configuration")
 
     model = st.sidebar.selectbox(
-        "Select AI Model:",
-        ["gpt-3.5-turbo", "gpt-4"],
-        index=0
+        "Select AI Model:", ["gpt-3.5-turbo", "gpt-4"], index=0
     )
 
     temperature = st.sidebar.slider(
@@ -67,35 +63,41 @@ def main():
         min_value=0.0,
         max_value=1.0,
         value=0.5,
-        step=0.05
+        step=0.05,
     )
 
-    default_system_msg = ("This is a conversation between a human and an AI philosopher of Stoicism. "
-                          "You help the human reflect on the core concepts of Stoicism as though you are Epictetus himself.")
-
-    system_message = st.sidebar.text_area(
-        "System Message:",
-        value=default_system_msg
+    default_system_msg = (
+        "This is a conversation between a human and an AI philosopher of Stoicism. "
+        "You help the human reflect on the core concepts of Stoicism as though you are Epictetus himself."
     )
 
-    if not hasattr(st.session_state, 'temperature'):
+    system_message = st.sidebar.text_area("System Message:", value=default_system_msg)
+
+    if not hasattr(st.session_state, "temperature"):
+        print("Initializing temperature")
         st.session_state.temperature = temperature
 
-    if not hasattr(st.session_state, 'model'):
+    if not hasattr(st.session_state, "model"):
+        print("Initializing model")
         st.session_state.model = model
 
-    if not hasattr(st.session_state, 'system_message'):
+    if not hasattr(st.session_state, "system_message"):
+        print("Initializing system message")
         st.session_state.system_message = system_message
 
     # If any sidebar setting has changed, update the state
     st.session_state.temperature = temperature
     st.session_state.model = model
     st.session_state.system_message = system_message
-    print(st.session_state.temperature, st.session_state.model, st.session_state.system_message)
 
     # Initialize chat instance using the state values
-    if not hasattr(st.session_state, 'chat_instance'):
-        st.session_state.chat_instance = ChatSession(st.session_state.model, st.session_state.temperature, st.session_state.system_message)
+    if not hasattr(st.session_state, "chat_instance"):
+        print("Initializing chat instance")
+        st.session_state.chat_instance = ChatSession(
+            st.session_state.model,
+            st.session_state.temperature,
+            st.session_state.system_message,
+        )
 
     # Display the conversation
     if "messages" not in st.session_state:
@@ -116,7 +118,6 @@ def main():
 
         st.session_state.messages.append({"role": "assistant", "content": response})
 
+
 if __name__ == "__main__":
     main()
-
-
