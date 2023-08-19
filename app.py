@@ -44,10 +44,14 @@ def main():
     st.title('Stoic Reflection with AI')
     st.write("Welcome to the Stoic reflection tool based on the principles in Epictetus's Enchiridion.")
 
+    if not hasattr(st.session_state, 'messages'):
+        st.session_state.messages = []
     user_input = st.text_input('Enter your reflection or question:')
     if user_input:
+        st.session_state.messages.append(user_input)
         response = chat(user_input)
-        st.write(f"AI Philosopher: {response}")
+        st.session_state.messages.append(response)
+    st.write(st.session_state.messages)
 
 
 if __name__ == "__main__":
