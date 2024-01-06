@@ -1,5 +1,7 @@
 import os
+import uuid
 
+import boto3
 import streamlit as st
 from langchain.prompts import (
     ChatPromptTemplate,
@@ -10,20 +12,49 @@ from langchain.prompts import (
 from langchain.llms import OpenAI
 from langchain.chains import ConversationChain
 from langchain.chat_models import ChatOpenAI
-from langchain.memory import ConversationSummaryMemory, PostgresChatMessageHistory
+from langchain.memory import ConversationSummaryMemory, DynamoDBChatMessageHistory, ConversationBufferMemory
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-# DATABASE_URL = os.environ.get("DATABASE_URL")
-DATABASE_URL = "postgresql://postgres:mypassword@localhost/chat_history"
+dynamodb = boto3.resource('dynamodb')
+
+def check_existing_session(session_id):
+    table = dynamodb.Table('SessionTable')
+    response = table.get_item(Key={'SessionId': session_id})
+    return 'Item' in response
+
+def add_message_to_db(session_id, role, content):
+    history = DynamoDBChatMessageHistory(table_name="SessionTable", session_id=session_id)
+    if role == "user":
+        history.add_user_message(content)
+    else:
+        history.add_ai_message(content)
+
+def get_chat_history_from_db(session_id):
+    table = dynamodb.Table('SessionTable')
+    response = table.get_item(Key={'SessionId': session_id})
+    messages = []
+    if 'Item' in response and 'messages' in response['Item']:
+        for msg in response['Item']['messages']:
+            if msg['role'] == 'user':
+                messages.append(HumanMessage(content=msg['content']))
+            else:
+                messages.append(AIMessage(content=msg['content']))
+    return messages
+
 
 
 class ChatSession:
-    def __init__(self, model, temperature, system_message):
+    def __init__(self, model, temperature, system_message, session_id):
         self.MODEL = model
         self.TEMPERATURE = temperature
         self.SYSTEM_MESSAGE = system_message
+        self.session_id = session_id
         self.conversation = self._setup_conversation()
+
+        self.message_history = DynamoDBChatMessageHistory(
+            table_name="SessionTable", session_id=session_id
+        )
 
     def _setup_conversation(self):
         """Initialize the conversation based on provided settings."""
@@ -36,14 +67,16 @@ class ChatSession:
         )
 
         llm = ChatOpenAI(temperature=self.TEMPERATURE, model=self.MODEL)
-        memory = ConversationSummaryMemory(llm=OpenAI(), return_messages=True)
+
+        memory = ConversationBufferMemory(
+            memory_key="history", return_messages=True
+        )
 
         return ConversationChain(memory=memory, prompt=prompt, llm=llm, verbose=True)
 
     def get_response(self, user_input):
         """Public method to get a response based on user input."""
         return self.conversation.predict(input=user_input)
-
 
 def main():
     st.title("Stoic Reflection with AI")
@@ -90,14 +123,21 @@ def main():
     st.session_state.model = model
     st.session_state.system_message = system_message
 
-    # Initialize chat instance using the state values
-    if not hasattr(st.session_state, "chat_instance"):
-        print("Initializing chat instance")
-        st.session_state.chat_instance = ChatSession(
-            st.session_state.model,
-            st.session_state.temperature,
-            st.session_state.system_message,
-        )
+    if not hasattr(st.session_state, 'session_id'):
+        st.session_state.session_id = str(uuid.uuid4())
+
+    # Create chat instance on-the-fly:
+    chat_instance = ChatSession(
+        st.session_state.model,
+        st.session_state.temperature,
+        st.session_state.system_message,
+        st.session_state.session_id
+    )
+
+    # Load previous messages from DynamoDB, if any
+    if not hasattr(st.session_state, "messages"):
+        st.session_state.messages = get_chat_history_from_db(st.session_state.session_id)
+
 
     # Display the conversation
     if "messages" not in st.session_state:
@@ -110,14 +150,14 @@ def main():
     if prompt := st.chat_input("What is up?"):
         st.chat_message("user").markdown(prompt)
         st.session_state.messages.append({"role": "user", "content": prompt})
-
-        response = st.session_state.chat_instance.get_response(prompt)
+        add_message_to_db(st.session_state.session_id, "user", prompt)
+        response = chat_instance.get_response(prompt)
 
         with st.chat_message("assistant"):
             st.markdown(response)
 
         st.session_state.messages.append({"role": "assistant", "content": response})
-
+        add_message_to_db(st.session_state.session_id, "assistant", response)
 
 if __name__ == "__main__":
     main()
